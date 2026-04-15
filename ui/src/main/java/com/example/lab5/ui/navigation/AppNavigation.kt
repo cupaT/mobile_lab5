@@ -20,15 +20,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.core.ui.BookScaffold
-import com.example.lab5.AppContainer
 import com.example.lab5.ui.books.BookDetailsScreen
 import com.example.lab5.ui.books.BooksScreen
 import com.example.lab5.ui.books.BooksViewModel
 
 @Composable
-fun BookShelfApp() {
+fun BookShelfApp(
+    viewModelFactory: androidx.lifecycle.ViewModelProvider.Factory
+) {
     val navController = rememberNavController()
-    val viewModel: BooksViewModel = viewModel(factory = AppContainer.booksViewModelFactory)
+    val viewModel: BooksViewModel = viewModel(factory = viewModelFactory)
     val catalogState by viewModel.catalogState.collectAsStateWithLifecycle()
     val favoritesState by viewModel.favoritesState.collectAsStateWithLifecycle()
 

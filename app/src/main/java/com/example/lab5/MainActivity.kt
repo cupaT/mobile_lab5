@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Lab5Theme {
-                BookShelfApp()
+                BookShelfApp(viewModelFactory = AppContainer.booksViewModelFactory)
             }
         }
     }
