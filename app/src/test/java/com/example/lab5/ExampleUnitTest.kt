@@ -1,12 +1,12 @@
 package com.example.lab5
 
-import com.example.lab5.data.BookSeed
-import com.example.lab5.data.InMemoryBookRepository
-import com.example.lab5.domain.usecase.GetBookDetailsUseCase
-import com.example.lab5.domain.usecase.GetBooksUseCase
-import com.example.lab5.domain.usecase.GetFavoriteBooksUseCase
-import com.example.lab5.domain.usecase.SearchBooksUseCase
-import com.example.lab5.domain.usecase.ToggleFavoriteUseCase
+import com.example.lab5.feature.catalog.data.BookSeed
+import com.example.lab5.feature.catalog.data.InMemoryBookRepository
+import com.example.lab5.feature.catalog.domain.GetBookDetailsUseCase
+import com.example.lab5.feature.catalog.domain.GetBooksUseCase
+import com.example.lab5.feature.catalog.domain.SearchBooksUseCase
+import com.example.lab5.feature.catalog.domain.ToggleFavoriteUseCase
+import com.example.lab5.feature.favorites.domain.GetFavoriteBooksUseCase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

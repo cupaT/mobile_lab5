@@ -22,4 +22,7 @@ dependencyResolutionManagement {
 rootProject.name = "lab5"
 include(":app")
 include(":core")
+include(":core:navigation")
+include(":feature:catalog")
+include(":feature:favorites")
  
