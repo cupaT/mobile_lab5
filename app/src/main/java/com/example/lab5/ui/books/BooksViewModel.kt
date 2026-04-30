@@ -3,6 +3,7 @@ package com.example.lab5.ui.books
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.common.UiState
+import com.example.lab5.analytics.AnalyticsService
 import com.example.lab5.domain.model.Book
 import com.example.lab5.domain.usecase.GetBookDetailsUseCase
 import com.example.lab5.domain.usecase.GetBooksUseCase
@@ -23,7 +24,8 @@ class BooksViewModel(
     private val getBookDetails: GetBookDetailsUseCase,
     private val getFavorites: GetFavoriteBooksUseCase,
     private val toggleFavorite: ToggleFavoriteUseCase,
-    private val searchBooks: SearchBooksUseCase
+    private val searchBooks: SearchBooksUseCase,
+    private val analytics: AnalyticsService
 ) : ViewModel() {
     private val query = MutableStateFlow("")
 
@@ -87,12 +89,18 @@ class BooksViewModel(
 
     fun onQueryChange(value: String) {
         query.update { value }
+        analytics.trackEvent("books_search_changed", mapOf("query" to value))
     }
 
     fun toggleFavorite(bookId: String) {
         viewModelScope.launch {
             toggleFavorite.invoke(bookId)
+            analytics.trackEvent("book_favorite_toggled", mapOf("book_id" to bookId))
         }
+    }
+
+    fun trackScreenViewed(screenName: String) {
+        analytics.trackEvent("screen_viewed", mapOf("screen_name" to screenName))
     }
 
     private fun toListState(
