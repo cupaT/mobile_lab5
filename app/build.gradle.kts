@@ -6,6 +6,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.warn("app/google-services.json is missing. Firebase services will work after adding the file from Firebase Console.")
+}
+
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) {
@@ -31,6 +37,7 @@ android {
         buildConfigField("String", "YANDEX_CLIENT_ID", "\"${localProperty("YANDEX_CLIENT_ID")}\"")
         buildConfigField("String", "VK_CLIENT_ID", "\"${localProperty("VK_CLIENT_ID")}\"")
         buildConfigField("String", "MAPKIT_API_KEY", "\"${localProperty("MAPKIT_API_KEY")}\"")
+        buildConfigField("Boolean", "HAS_GOOGLE_SERVICES", file("google-services.json").exists().toString())
         manifestPlaceholders["YANDEX_CLIENT_ID"] = localProperty("YANDEX_CLIENT_ID")
         manifestPlaceholders["VKIDClientID"] = localProperty("VK_CLIENT_ID")
         manifestPlaceholders["VKIDClientSecret"] = localProperty("VK_CLIENT_SECRET")
@@ -81,6 +88,12 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.vkid)
     implementation(libs.okhttp)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.config)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.auth)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)

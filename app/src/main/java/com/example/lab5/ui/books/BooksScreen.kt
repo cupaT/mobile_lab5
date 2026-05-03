@@ -31,6 +31,8 @@ import java.util.Locale
 @Composable
 fun BooksScreen(
     state: BookListState,
+    welcomeBannerText: String,
+    experimentalFeatureEnabled: Boolean,
     onQueryChange: (String) -> Unit,
     onBookClick: (String) -> Unit,
     onFavoriteToggle: (String) -> Unit,
@@ -48,6 +50,27 @@ fun BooksScreen(
             label = { Text("Поиск по каталогу") },
             placeholder = { Text("Название, автор или жанр") }
         )
+
+        if (welcomeBannerText.isNotBlank()) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(AppSpacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(AppSpacing.extraSmall)
+                ) {
+                    Text(
+                        text = welcomeBannerText,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    if (experimentalFeatureEnabled) {
+                        Text(
+                            text = "Экспериментальная подборка включена через Remote Config.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
 
         when (val booksState = state.booksState) {
             UiState.Loading -> {

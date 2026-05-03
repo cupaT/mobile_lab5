@@ -1,10 +1,15 @@
 package com.example.lab5.ui.navigation
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -29,15 +34,25 @@ import com.example.lab5.ui.auth.LoginViewModel
 import com.example.lab5.ui.books.BookDetailsScreen
 import com.example.lab5.ui.books.BooksScreen
 import com.example.lab5.ui.books.BooksViewModel
+import com.example.lab5.ui.profile.ProfileViewModel
 
 @Composable
-fun BookShelfApp() {
+fun BookShelfApp(
+    notificationTarget: NotificationNavigationTarget? = null,
+    onNotificationTargetHandled: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val viewModel: BooksViewModel = viewModel(factory = AppContainer.booksViewModelFactory)
     val loginViewModel: LoginViewModel = viewModel(factory = AppContainer.loginViewModelFactory)
+    val profileViewModel: ProfileViewModel = viewModel(factory = AppContainer.profileViewModelFactory)
     val loginState by loginViewModel.state.collectAsStateWithLifecycle()
     val catalogState by viewModel.catalogState.collectAsStateWithLifecycle()
     val favoritesState by viewModel.favoritesState.collectAsStateWithLifecycle()
+    val profileState by profileViewModel.state.collectAsStateWithLifecycle()
+    val remoteConfigState by profileViewModel.remoteConfigState.collectAsStateWithLifecycle()
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { }
 
     if (!loginState.isAuthenticated) {
         LoginScreen(
@@ -45,6 +60,36 @@ fun BookShelfApp() {
             onLoginClick = loginViewModel::login
         )
         return
+    }
+
+    LaunchedEffect(loginState.userName, loginState.email) {
+        profileViewModel.syncAuthenticatedUser(loginState.userName, loginState.email)
+    }
+
+    LaunchedEffect(loginState.isAuthenticated) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    LaunchedEffect(notificationTarget, loginState.isAuthenticated) {
+        notificationTarget?.let { target ->
+            when {
+                !target.bookId.isNullOrBlank() || target.target == "details" -> {
+                    target.bookId?.takeIf { it.isNotBlank() }?.let {
+                        navController.navigate(AppRoute.Details.build(it))
+                    } ?: navController.navigate(AppRoute.Catalog.route)
+                }
+
+                target.target == AppRoute.Favorites.route -> navController.navigate(AppRoute.Favorites.route)
+                target.target == AppRoute.About.route || target.target == "profile" -> {
+                    navController.navigate(AppRoute.About.route)
+                }
+
+                else -> navController.navigate(AppRoute.Catalog.route)
+            }
+            onNotificationTargetHandled()
+        }
     }
 
     BookScaffold(
@@ -61,6 +106,8 @@ fun BookShelfApp() {
                 }
                 BooksScreen(
                     state = catalogState,
+                    welcomeBannerText = remoteConfigState.welcomeBannerText,
+                    experimentalFeatureEnabled = remoteConfigState.experimentalFeatureEnabled,
                     onQueryChange = viewModel::onQueryChange,
                     onBookClick = { navController.navigate(AppRoute.Details.build(it)) },
                     onFavoriteToggle = viewModel::toggleFavorite,
@@ -73,6 +120,8 @@ fun BookShelfApp() {
                 }
                 BooksScreen(
                     state = favoritesState,
+                    welcomeBannerText = remoteConfigState.welcomeBannerText,
+                    experimentalFeatureEnabled = remoteConfigState.experimentalFeatureEnabled,
                     onQueryChange = viewModel::onQueryChange,
                     onBookClick = { navController.navigate(AppRoute.Details.build(it)) },
                     onFavoriteToggle = viewModel::toggleFavorite,
@@ -90,6 +139,10 @@ fun BookShelfApp() {
                     firstName = loginState.firstName,
                     lastName = loginState.lastName,
                     email = loginState.email,
+                    firebaseProfile = profileState.profile,
+                    remoteConfigState = remoteConfigState,
+                    profileMessage = profileState.message,
+                    isProfileLoading = profileState.isLoading,
                     onLogoutClick = loginViewModel::logout,
                     modifier = androidx.compose.ui.Modifier.padding(innerPadding)
                 )
@@ -116,7 +169,7 @@ private fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
         NavigationItem(AppRoute.Catalog.route, "Каталог", Icons.AutoMirrored.Outlined.MenuBook),
         NavigationItem(AppRoute.Favorites.route, "Избранное", Icons.Outlined.Bookmarks),
-        NavigationItem(AppRoute.About.route, "О нас", Icons.Outlined.Info)
+        NavigationItem(AppRoute.About.route, "Профиль", Icons.Outlined.Person)
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination

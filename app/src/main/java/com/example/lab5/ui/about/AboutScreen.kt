@@ -34,10 +34,14 @@ import androidx.core.content.ContextCompat
 import com.example.core.common.AppSpacing
 import com.example.lab5.BuildConfig
 import com.example.lab5.auth.AuthProvider
+import com.example.lab5.config.RemoteConfigState
+import com.example.lab5.profile.UserProfile
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.geometry.Polyline
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.mapview.MapView
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun AboutScreen(
@@ -47,6 +51,10 @@ fun AboutScreen(
     firstName: String?,
     lastName: String?,
     email: String?,
+    firebaseProfile: UserProfile?,
+    remoteConfigState: RemoteConfigState,
+    profileMessage: String?,
+    isProfileLoading: Boolean,
     onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -75,6 +83,10 @@ fun AboutScreen(
             firstName = firstName,
             lastName = lastName,
             email = email,
+            firebaseProfile = firebaseProfile,
+            remoteConfigState = remoteConfigState,
+            profileMessage = profileMessage,
+            isProfileLoading = isProfileLoading,
             onLogoutClick = onLogoutClick
         )
 
@@ -141,6 +153,10 @@ private fun ProfileCard(
     firstName: String?,
     lastName: String?,
     email: String?,
+    firebaseProfile: UserProfile?,
+    remoteConfigState: RemoteConfigState,
+    profileMessage: String?,
+    isProfileLoading: Boolean,
     onLogoutClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -159,10 +175,43 @@ private fun ProfileCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (remoteConfigState.welcomeBannerText.isNotBlank()) {
+                Text(
+                    text = remoteConfigState.welcomeBannerText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             ProfileLine(label = "Логин", value = login)
             ProfileLine(label = "Имя", value = firstName)
             ProfileLine(label = "Фамилия", value = lastName)
             ProfileLine(label = "Почта", value = email)
+            ProfileLine(label = "Firebase userId", value = firebaseProfile?.userId)
+            ProfileLine(label = "Firestore имя", value = firebaseProfile?.name)
+            ProfileLine(label = "Firestore email", value = firebaseProfile?.email)
+            ProfileLine(label = "FCM-токен", value = firebaseProfile?.fcmToken?.shortToken())
+            ProfileLine(label = "Обновлено", value = firebaseProfile?.updatedAt?.formatProfileDate())
+            if (remoteConfigState.experimentalFeatureEnabled) {
+                Text(
+                    text = "Экспериментальная функция активна.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            if (isProfileLoading) {
+                Text(
+                    text = "Синхронизируем профиль Firebase...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            profileMessage?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
             OutlinedButton(
                 onClick = onLogoutClick,
                 modifier = Modifier.fillMaxWidth()
@@ -172,6 +221,14 @@ private fun ProfileCard(
             }
         }
     }
+}
+
+private fun String.shortToken(): String {
+    return if (length <= 24) this else "${take(12)}...${takeLast(8)}"
+}
+
+private fun java.util.Date.formatProfileDate(): String {
+    return SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()).format(this)
 }
 
 @Composable
