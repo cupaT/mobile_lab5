@@ -11,6 +11,11 @@ import com.example.lab5.auth.SdkAuthService
 import com.example.lab5.config.FirebaseRemoteConfigService
 import com.example.lab5.config.NoopRemoteConfigService
 import com.example.lab5.config.RemoteConfigService
+import com.example.lab5.crashreporting.AppMetricaCrashReporter
+import com.example.lab5.crashreporting.CompositeCrashReporter
+import com.example.lab5.crashreporting.CrashReporter
+import com.example.lab5.crashreporting.CrashlyticsCrashReporter
+import com.example.lab5.crashreporting.ManualCrashTrigger
 import com.example.lab5.data.InMemoryBookRepository
 import com.example.lab5.domain.usecase.GetBookDetailsUseCase
 import com.example.lab5.domain.usecase.GetBooksUseCase
@@ -30,6 +35,13 @@ object AppContainer {
 
     private val repository = InMemoryBookRepository()
     private val analyticsService: AnalyticsService = AppMetricaAnalyticsService()
+    val crashReporter: CrashReporter = CompositeCrashReporter(
+        listOf(
+            CrashlyticsCrashReporter(),
+            AppMetricaCrashReporter()
+        )
+    )
+    val manualCrashTrigger = ManualCrashTrigger(crashReporter)
     private val authService: SdkAuthService by lazy {
         SdkAuthService(EncryptedAuthStorage(appContext))
     }
@@ -63,7 +75,8 @@ object AppContainer {
                 getFavorites = getFavoriteBooksUseCase,
                 toggleFavorite = toggleFavoriteUseCase,
                 searchBooks = searchBooksUseCase,
-                analytics = analyticsService
+                analytics = analyticsService,
+                crashReporter = crashReporter
             ) as T
         }
     }
@@ -83,7 +96,8 @@ object AppContainer {
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
             return ProfileViewModel(
                 profileService = profileService,
-                remoteConfigService = remoteConfigService
+                remoteConfigService = remoteConfigService,
+                crashReporter = crashReporter
             ) as T
         }
     }

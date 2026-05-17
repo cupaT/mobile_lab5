@@ -20,6 +20,9 @@ class InMemoryBookRepository(
 
     override suspend fun toggleFavorite(bookId: String) {
         books.update { items ->
+            if (items.none { it.id == bookId }) {
+                throw NoSuchElementException("Book with id=$bookId was not found")
+            }
             items.map { book ->
                 if (book.id == bookId) {
                     book.copy(isFavorite = !book.isFavorite)

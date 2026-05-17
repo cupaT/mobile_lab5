@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.Button
@@ -56,6 +57,7 @@ fun AboutScreen(
     profileMessage: String?,
     isProfileLoading: Boolean,
     onLogoutClick: () -> Unit,
+    onManualCrashClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -87,7 +89,8 @@ fun AboutScreen(
             remoteConfigState = remoteConfigState,
             profileMessage = profileMessage,
             isProfileLoading = isProfileLoading,
-            onLogoutClick = onLogoutClick
+            onLogoutClick = onLogoutClick,
+            onManualCrashClick = onManualCrashClick
         )
 
         Text(text = "О нас", style = MaterialTheme.typography.headlineSmall)
@@ -158,6 +161,7 @@ private fun ProfileCard(
     profileMessage: String?,
     isProfileLoading: Boolean,
     onLogoutClick: () -> Unit,
+    onManualCrashClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(modifier = modifier.fillMaxWidth()) {
@@ -211,6 +215,13 @@ private fun ProfileCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )
+            }
+            OutlinedButton(
+                onClick = onManualCrashClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(imageVector = Icons.Outlined.BugReport, contentDescription = null)
+                Text(text = "Тестовый краш", modifier = Modifier.padding(start = AppSpacing.small))
             }
             OutlinedButton(
                 onClick = onLogoutClick,

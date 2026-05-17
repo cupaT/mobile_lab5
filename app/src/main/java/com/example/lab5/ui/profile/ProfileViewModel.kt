@@ -3,6 +3,7 @@ package com.example.lab5.ui.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.lab5.config.RemoteConfigService
+import com.example.lab5.crashreporting.CrashReporter
 import com.example.lab5.profile.UserProfileService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +15,8 @@ import kotlinx.coroutines.launch
 
 class ProfileViewModel(
     private val profileService: UserProfileService,
-    remoteConfigService: RemoteConfigService
+    remoteConfigService: RemoteConfigService,
+    private val crashReporter: CrashReporter
 ) : ViewModel() {
     val remoteConfigState = remoteConfigService.state
 
@@ -28,12 +30,16 @@ class ProfileViewModel(
         val syncKey = "${name.orEmpty()}|${email.orEmpty()}"
         if (lastSyncKey == syncKey && profileJob?.isActive == true) return
         lastSyncKey = syncKey
+        crashReporter.setUserId(email?.takeIf { it.isNotBlank() } ?: name)
+        crashReporter.setContext("profile_name", name)
+        crashReporter.setContext("profile_email", email)
         profileJob?.cancel()
         profileJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, message = null) }
             runCatching {
                 profileService.syncCurrentProfile(name = name, email = email)
             }.onFailure { error ->
+                crashReporter.recordNonFatal("Failed to sync Firebase profile", error)
                 _state.update {
                     it.copy(
                         isLoading = false,
@@ -45,6 +51,7 @@ class ProfileViewModel(
 
             profileService.observeCurrentProfile()
                 .catch { error ->
+                    crashReporter.recordNonFatal("Failed to observe Firestore profile", error)
                     _state.update {
                         it.copy(
                             isLoading = false,

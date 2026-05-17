@@ -144,6 +144,17 @@ fun BookShelfApp(
                     profileMessage = profileState.message,
                     isProfileLoading = profileState.isLoading,
                     onLogoutClick = loginViewModel::logout,
+                    onManualCrashClick = {
+                        AppContainer.manualCrashTrigger.trigger(
+                            mapOf(
+                                "screen_name" to "about",
+                                "auth_provider" to loginState.provider?.analyticsName,
+                                "user_email" to loginState.email,
+                                "user_name" to loginState.userName,
+                                "firebase_user_id" to profileState.profile?.userId
+                            )
+                        )
+                    },
                     modifier = androidx.compose.ui.Modifier.padding(innerPadding)
                 )
             }

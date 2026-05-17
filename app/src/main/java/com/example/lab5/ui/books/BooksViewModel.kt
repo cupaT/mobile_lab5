@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.common.UiState
 import com.example.lab5.analytics.AnalyticsService
+import com.example.lab5.crashreporting.CrashReporter
 import com.example.lab5.domain.model.Book
 import com.example.lab5.domain.usecase.GetBookDetailsUseCase
 import com.example.lab5.domain.usecase.GetBooksUseCase
@@ -13,6 +14,7 @@ import com.example.lab5.domain.usecase.ToggleFavoriteUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -25,12 +27,16 @@ class BooksViewModel(
     private val getFavorites: GetFavoriteBooksUseCase,
     private val toggleFavorite: ToggleFavoriteUseCase,
     private val searchBooks: SearchBooksUseCase,
-    private val analytics: AnalyticsService
+    private val analytics: AnalyticsService,
+    private val crashReporter: CrashReporter
 ) : ViewModel() {
     private val query = MutableStateFlow("")
 
     val catalogState: StateFlow<BookListState> = combine(
-        getBooks(),
+        getBooks().catch { error ->
+            crashReporter.recordNonFatal("Failed to observe catalog books", error)
+            emit(emptyList())
+        },
         query
     ) { books, currentQuery ->
         val filteredBooks = searchBooks(books, currentQuery)
@@ -49,7 +55,10 @@ class BooksViewModel(
     )
 
     val favoritesState: StateFlow<BookListState> = combine(
-        getFavorites(),
+        getFavorites().catch { error ->
+            crashReporter.recordNonFatal("Failed to observe favorite books", error)
+            emit(emptyList())
+        },
         query
     ) { books, currentQuery ->
         val filteredBooks = searchBooks(books, currentQuery)
@@ -68,7 +77,13 @@ class BooksViewModel(
     )
 
     fun detailsState(bookId: String): StateFlow<BookDetailsState> {
+        crashReporter.setContext("book_details_id", bookId)
         return getBookDetails(bookId)
+            .catch { error ->
+                crashReporter.setContext("book_id", bookId)
+                crashReporter.recordNonFatal("Failed to observe book details", error)
+                emit(null)
+            }
             .map { book ->
                 BookDetailsState(
                     bookState = if (book == null) {
@@ -94,12 +109,19 @@ class BooksViewModel(
 
     fun toggleFavorite(bookId: String) {
         viewModelScope.launch {
-            toggleFavorite.invoke(bookId)
-            analytics.trackEvent("book_favorite_toggled", mapOf("book_id" to bookId))
+            runCatching {
+                crashReporter.setContext("book_id", bookId)
+                toggleFavorite.invoke(bookId)
+            }.onSuccess {
+                analytics.trackEvent("book_favorite_toggled", mapOf("book_id" to bookId))
+            }.onFailure { error ->
+                crashReporter.recordNonFatal("Failed to toggle favorite book", error)
+            }
         }
     }
 
     fun trackScreenViewed(screenName: String) {
+        crashReporter.setContext("screen_name", screenName)
         analytics.trackEvent("screen_viewed", mapOf("screen_name" to screenName))
     }
 

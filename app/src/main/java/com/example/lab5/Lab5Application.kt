@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.lab5.analytics.AppMetricaAnalyticsService
 import com.example.lab5.messaging.FcmTokenStorage
 import com.example.lab5.profile.FirebaseUserProfileService
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.messaging.FirebaseMessaging
 import com.yandex.mapkit.MapKitFactory
 
@@ -14,6 +15,7 @@ class Lab5Application : Application() {
         AppContainer.initialize(this)
         initMapKit()
         initFcmToken()
+        initCrashlytics()
         AppMetricaAnalyticsService.activate(this, BuildConfig.APPMETRICA_API_KEY)
     }
 
@@ -43,6 +45,15 @@ class Lab5Application : Application() {
                 Log.d(TAG, "FCM token: $token")
                 FirebaseUserProfileService(tokenStorage).updateTokenIfUserExists(token)
             }
+    }
+
+    private fun initCrashlytics() {
+        if (!BuildConfig.HAS_GOOGLE_SERVICES) return
+        FirebaseCrashlytics.getInstance().apply {
+            setCrashlyticsCollectionEnabled(true)
+            sendUnsentReports()
+            log("Crashlytics initialized")
+        }
     }
 
     private companion object {
